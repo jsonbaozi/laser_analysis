@@ -34,7 +34,7 @@ public class imgDisplay extends Activity{
         setContentView(R.layout.activity_img_display);
 
         Intent parent_intent = getIntent();
-        Uri imgUri = parent_intent.getData();
+        imgUri = parent_intent.getData();
         display(imgUri);
     }
 
@@ -73,12 +73,29 @@ public class imgDisplay extends Activity{
         return super.onOptionsItemSelected(item);
     }
 
+    public class Pixel{
+        private final int x;
+        private final int y;
+
+        public Pixel(int x, int y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
+        public int getX(){ return x; }
+
+        public int getY(){ return y; }
+    }
+
     protected void display(Uri imgUri){
 
+/*
         mPaint.setColor(Color.WHITE);
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setStrokeWidth(10);
         mPaint.setStrokeCap(Cap.ROUND);
+*/
 
         if (imgUri != null) {
             //decode uri
@@ -110,19 +127,19 @@ public class imgDisplay extends Activity{
                     int action = event.getAction();
                     switch (action) {
                         case MotionEvent.ACTION_DOWN:
-                            currX = event.getX();
-                            currY = event.getY();
-                            drawPoint(imgCanvas);
+                            currX = event.getX()*3;
+                            currY = event.getY()*3;
+                            //drawPoint(imgCanvas);
                             break;
                         case MotionEvent.ACTION_MOVE:
-                            currX = event.getX();
-                            currY = event.getY();
-                            drawPoint(imgCanvas);
+                            currX = event.getX()*3;
+                            currY = event.getY()*3;
+                            //drawPoint(imgCanvas);
                             break;
                         case MotionEvent.ACTION_UP:
-                            currX = event.getX();
-                            currY = event.getY();
-                            drawPoint(imgCanvas);
+                            currX = event.getX()*3;
+                            currY = event.getY()*3;
+                            //setPoint(imgCanvas);
                             break;
                         case MotionEvent.ACTION_CANCEL:
                             break;
@@ -138,7 +155,7 @@ public class imgDisplay extends Activity{
         }
     }
 
-    protected void setPoints(Canvas canvas){
+/*    protected void drawPoints(Canvas canvas){
         //Button button = (Button) findViewById(R.id.button2);
 
         mPaint.setColor(Color.WHITE);
@@ -146,18 +163,79 @@ public class imgDisplay extends Activity{
         mPaint.setStrokeWidth(25);
         mPaint.setStrokeCap(Cap.ROUND);
 
+    }*/
+
+    public void setPoint(View view){
+        mPaint.setColor(Color.GREEN);
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeWidth(25);
+        mPaint.setStrokeCap(Cap.ROUND);
+
+
+        Button button = (Button) findViewById(R.id.button2);
+
+        imgCanvas.drawPoint(currX,currY,mPaint);
+
+        pixels[iterator] = new Pixel( Math.round(currX), Math.round(currY) );
+        if (pixels[iterator].getX() > maxX){ maxX = pixels[iterator].getX();}
+        if (pixels[iterator].getX() < minX){ minX = pixels[iterator].getX();}
+        if (pixels[iterator].getY() > maxY){ maxY = pixels[iterator].getY();}
+        if (pixels[iterator].getY() < minY){ minY = pixels[iterator].getY();}
+        xy = Float.toString(currX) + ", " + Float.toString(currY);
+
+        if(iterator < 3){ iterator++; }
+        else{ transform();}
+        button.setText(xy + ", " + buttonText[iterator]);
+
     }
 
-    protected void drawPoint(Canvas canvas){
-        canvas.drawPoint(currX*3,currY*3,mPaint);
+    protected void transform(){
+
+        maxX += 50;
+        minX -= 50;
+        maxY += 50;
+        minY -= 50;
+
+        int width = maxX - minX;
+        int height = maxY - minY;
+        double[] pointArray = new double[8];
+
+        //scale points to cropped array
+        for (int i = 0; i < 8; i+=2){
+            pointArray[i] = pixels[i/2].getX()-minX;
+            pointArray[i+1] = pixels[i/2].getY()-minY;
+        }
+
+        //int[] crop = new int[width*height];
+        //rotatedbmp.getPixels(crop, 0, width, minX, minY, width, height);
+
+        int[] dimens = new int[4];
+        dimens[0] = width;
+        dimens[1] = height;
+        dimens[2] = minX;
+        dimens[3] = minY;
+
+        Intent intent = new Intent(this, projTransform.class);
+        //intent.putExtra("cropped", crop);
+        intent.setData(imgUri);
+        intent.putExtra("points", pointArray);
+        intent.putExtra("dimens", dimens);
+        startActivity(intent);
+
     }
 
 
-
+    private Uri imgUri;
     private Canvas imgCanvas;
     private Bitmap bmp;
     private Bitmap rotatedbmp;
     private ImageView imageView;
     private float currX, currY;
-    Paint mPaint = new Paint();
+    private String xy;
+    private Pixel[] pixels = new Pixel[4];
+    private int minX = 100000, minY = 100000, maxX = 0, maxY = 0;
+    private Paint mPaint = new Paint();
+    //private Button button = (Button) findViewById(R.id.button2);
+    private final String[] buttonText = {"Select point (0,0)", "Select point (0,1)", "Select point (1,0)", "Select point (1,1)"};
+    private int iterator = 0;
 }

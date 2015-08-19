@@ -14,12 +14,13 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="75dp"
-        android:text="Set Top Left Vertex"
+        android:text="Set point (0,0)"
         android:id="@+id/button2"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        android:onClick="setPoint"/>
 
 </RelativeLayout>

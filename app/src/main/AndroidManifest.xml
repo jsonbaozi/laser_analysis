@@ -24,6 +24,11 @@
             android:label="@string/title_activity_img_display"
             android:parentActivityName=".MainActivity" >
         </activity>
+        <activity
+            android:name=".projTransform"
+            android:label="@string/title_activity_proj_transform"
+            android:parentActivityName=".imgDisplay" >
+        </activity>
     </application>
 
 </manifest>
