@@ -29,9 +29,8 @@ public class projTransform extends Activity{
         Intent parent_intent = getIntent();
         Uri imgUri = parent_intent.getData();
         pointArray = parent_intent.getDoubleArrayExtra("points");
-        //dimens[0-3]: width, height, minX, minY
-        dimens = parent_intent.getIntArrayExtra("dimens");
-        transform(imgUri,pointArray, dimens);
+        rotate = parent_intent.getIntExtra("rotate", 0);
+        transform(imgUri,pointArray);
     }
     //A*B = C
     private static double[][] mMult(double[][] A, double[][] B){
@@ -86,7 +85,7 @@ public class projTransform extends Activity{
         return Y;
     }
 
-    private void transform(Uri data, double[] sourceArray, int[] dimens){
+    private void transform(Uri data, double[] sourceArray){
 
         if (data != null) {
             try {
@@ -97,33 +96,26 @@ public class projTransform extends Activity{
             }
 
             Matrix matrix = new Matrix();
-            matrix.postRotate(90);
+            matrix.postRotate(rotate);
             Bitmap rotatedbmp = Bitmap.createBitmap(tempBmp, 0, 0, tempBmp.getWidth(), tempBmp.getHeight(), matrix, true);
 
-            crop = new int[dimens[0] * dimens[1]];
-            rotatedbmp.getPixels(crop, 0, dimens[0], dimens[2], dimens[3], dimens[0], dimens[1]);
 
             //map for original bmp
             double[][] sourceMap = tMap(sourceArray);
-            Log.e("sourceMap",toString(sourceMap));
 
             //map for transformed bmp
-            double[] destArray = new double[] {0,0,0,destHeight,destWidth,0,destHeight,destWidth};
+            double[] destArray = new double[] {0,0,destWidth,0,destWidth,destHeight,0,destHeight};
             double[][] destMap = tMap(destArray);
-            Log.e("destMap",toString(destMap));
 
             // C = B*[A^(-1)]
             double[][] finalMap = mMult(sourceMap, mInvert3x3(destMap));
-
-            Log.e("width", String.valueOf(dimens[0]));
 
             int[] destPixels = new int[destHeight*destWidth];
             int[] temp;
             for(int i=0; i<destHeight-1; i++){
                 for(int j=0; j<destWidth-1; j++){
                     temp = pixelMap(finalMap,i,j);
-                    Log.e("rounded", String.valueOf(temp[0]) + ", " + String.valueOf(temp[1]));
-                    destPixels[(i*destWidth)+j] = crop[(temp[0]*dimens[0]) + temp[1]];
+                    destPixels[(i*destWidth)+j] = rotatedbmp.getPixel(temp[0],temp[1]);
                 }
             }
             display(destPixels, destWidth, destHeight);
@@ -140,22 +132,15 @@ public class projTransform extends Activity{
         tempArray[1][1] = pointArray[3];
         tempArray[0][2] = pointArray[4];
         tempArray[1][2] = pointArray[5];
-        for(int i=0; i<3; i++){
+        for(int i=0; i<3; i++) {
             tempArray[2][i] = 1;
         }
-        //Log.e("tempArray",toString(tempArray));
 
         double[] tempVector = new double[] {pointArray[6], pointArray[7], 1};
 
-        //Log.e("tempVector",toString(tempVector));
-
         double[][] inverted = mInvert3x3(tempArray);
 
-        //Log.e("inverted",toString(inverted));
-
         double[] coef = mMult(inverted, tempVector);
-
-        //Log.e("coef",toString(coef));
 
         double[][] tran = new double[3][3];
 
@@ -168,8 +153,9 @@ public class projTransform extends Activity{
     }
 
     private int[] pixelMap(double[][] map, double x, double y){
-        double[] tempVector = new double[] {x,y,1};
+        double[] tempVector = new double[] {y,x,1};
         double[] primeVector = mMult(map,tempVector);
+        //ret (x'',y'')
         return new int[] {(int) Math.round(primeVector[0]/primeVector[2]), (int) Math.round(primeVector[1]/primeVector[2])};
     }
 
@@ -178,28 +164,11 @@ public class projTransform extends Activity{
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setStrokeWidth(25);
         mPaint.setStrokeCap(Cap.ROUND);
-/*
-
-        double [] pixels_int = new int[pixels.length];
-        for (int i=0;i<pixels.length;i++){
-            pixels_int[i] = (int) pixels[i];
-        }
-*/
 
         Bitmap cropped = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.RGB_565);
 
-        /*Bitmap mcropped = Bitmap.createBitmap(cropped.getWidth(), cropped.getHeight(), Bitmap.Config.RGB_565);
-
-        imgCanvas = new Canvas(mcropped);
-        imgCanvas.drawBitmap(cropped, 0, 0, null);
-
-        for(int i = 0; i < 8; i+=2){
-            imgCanvas.drawPoint(pointArray[i],pointArray[i+1],mPaint);
-        }*/
-
-        //set imageView to canvas drawable
+        //set imageView
         imageView = (ImageView) findViewById(R.id.imageView2);
-        //imageView.setImageDrawable(new BitmapDrawable(getResources(), mcropped));
         imageView.setImageBitmap(cropped);
     }
 
@@ -222,15 +191,14 @@ public class projTransform extends Activity{
         return string;
     }
 
-
     private double[] pointArray;
-    private int[] crop;
+    private int rotate;
     private int[] dimens;
     private Bitmap tempBmp;
     private ImageView imageView;
-    private Canvas imgCanvas;
+    //private Canvas imgCanvas;
     private Paint mPaint = new Paint();
-    private static int destHeight = 400;
-    private static int destWidth = 700;
+    private static int destHeight = 200;
+    private static int destWidth = 350;
 
 }

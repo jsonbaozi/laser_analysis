@@ -2,25 +2,25 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
     tools:context="delphiki.testapp.imgDisplay">
 
-    <ImageView
+
+    <delphiki.testapp.DrawView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:id="@+id/imageView"
+        android:id="@+id/DrawView"
         android:src="@mipmap/ic_launcher" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="75dp"
-        android:text="Set point (0,0)"
+        android:text="Set points"
         android:id="@+id/button2"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:onClick="setPoint"/>
+        android:onClick="transform"/>
 
 </RelativeLayout>

@@ -77,6 +77,13 @@ public class MainActivity extends Activity {
         }
     }
 
-
     public final static int PICK_IMAGE = 100;
 }
+/* stackoverflow posts:
+screen coord -> bitmap: http://stackoverflow.com/questions/4933612/how-to-convert-coordinates-of-the-image-view-to-the-coordinates-of-the-bitmap/9945896#9945896
+projective transform:   http://math.stackexchange.com/questions/296794/finding-the-transform-matrix-from-4-projected-points-with-javascript
+screen orientation:     http://stackoverflow.com/questions/12726860/android-how-to-detect-the-image-orientation-portrait-or-landscape-picked-fro/12727053#12727053
+3x3 invert:             https://en.wikipedia.org/wiki/Invertible_matrix#Inversion_of_3.C3.973_matrices
+
+
+ */

@@ -2,13 +2,6 @@
 <items version="2" >
 
     <item
-        jar="E:\AndroidStudioProjects\Testapp\app\build\intermediates\exploded-aar\com.android.support\support-v4\22.2.0\jars\libs\internal_impl-22.2.0.jar"
-        jumboMode="false"
-        revision="22.0.1"
-        sha1="57f2ab85c164ff1676ec64dee787981c046fab79">
-        <dex dex="E:\AndroidStudioProjects\Testapp\app\build\intermediates\pre-dexed\debug\internal_impl-22.2.0-25ac2584825deb54ad245245df00390d59836971.jar" />
-    </item>
-    <item
         jar="E:\AndroidStudioProjects\Testapp\app\build\intermediates\exploded-aar\com.android.support\support-v4\22.2.0\jars\classes.jar"
         jumboMode="false"
         revision="22.0.1"
@@ -16,11 +9,11 @@
         <dex dex="E:\AndroidStudioProjects\Testapp\app\build\intermediates\pre-dexed\debug\classes-93b7b2b085fe287d26f5365f47270dd3390549bf.jar" />
     </item>
     <item
-        jar="E:\AndroidStudioProjects\Testapp\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\22.2.0\jars\classes.jar"
+        jar="E:\AndroidStudioProjects\Testapp\app\build\intermediates\exploded-aar\com.android.support\support-v4\22.2.0\jars\libs\internal_impl-22.2.0.jar"
         jumboMode="false"
         revision="22.0.1"
-        sha1="73753982da6bde518f3a4c6b372749981d14d1a0">
-        <dex dex="E:\AndroidStudioProjects\Testapp\app\build\intermediates\pre-dexed\debug\classes-3af8db794edd9319c392e07f49cec6b21a6011c1.jar" />
+        sha1="57f2ab85c164ff1676ec64dee787981c046fab79">
+        <dex dex="E:\AndroidStudioProjects\Testapp\app\build\intermediates\pre-dexed\debug\internal_impl-22.2.0-25ac2584825deb54ad245245df00390d59836971.jar" />
     </item>
     <item
         jar="E:\asdk\extras\android\m2repository\com\android\support\support-annotations\22.2.0\support-annotations-22.2.0.jar"
@@ -28,6 +21,13 @@
         revision="22.0.1"
         sha1="66b42a1f3eb7676070b7ef7f14b603483aecbee1">
         <dex dex="E:\AndroidStudioProjects\Testapp\app\build\intermediates\pre-dexed\debug\support-annotations-22.2.0-6428b3729fb77aef819c7b2391f5c769337a1b5a.jar" />
+    </item>
+    <item
+        jar="E:\AndroidStudioProjects\Testapp\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\22.2.0\jars\classes.jar"
+        jumboMode="false"
+        revision="22.0.1"
+        sha1="73753982da6bde518f3a4c6b372749981d14d1a0">
+        <dex dex="E:\AndroidStudioProjects\Testapp\app\build\intermediates\pre-dexed\debug\classes-3af8db794edd9319c392e07f49cec6b21a6011c1.jar" />
     </item>
 
 </items>

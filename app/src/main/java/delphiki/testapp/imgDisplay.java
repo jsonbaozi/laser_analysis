@@ -1,8 +1,10 @@
 package delphiki.testapp;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -11,9 +13,15 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Cap;
 
+import android.graphics.PointF;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -22,6 +30,7 @@ import android.view.View.OnTouchListener;
 import android.widget.ImageView;
 import android.widget.Button;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
@@ -51,51 +60,7 @@ public class imgDisplay extends Activity{
                             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_img_display, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    public class Pixel{
-        private final int x;
-        private final int y;
-
-        public Pixel(int x, int y)
-        {
-            this.x = x;
-            this.y = y;
-        }
-
-        public int getX(){ return x; }
-
-        public int getY(){ return y; }
-    }
-
     protected void display(Uri imgUri){
-
-/*
-        mPaint.setColor(Color.WHITE);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeWidth(10);
-        mPaint.setStrokeCap(Cap.ROUND);
-*/
 
         if (imgUri != null) {
             //decode uri
@@ -109,7 +74,8 @@ public class imgDisplay extends Activity{
 
             //rotate bitmap
             Matrix matrix = new Matrix();
-            matrix.postRotate(90);
+            rotate = getCameraPhotoOrientation(imgDisplay.this, imgUri);
+            matrix.postRotate(rotate);
             rotatedbmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
 
             //draw bitmap to new canvas
@@ -119,109 +85,81 @@ public class imgDisplay extends Activity{
             imgCanvas.drawBitmap(rotatedbmp, 0, 0, null);
 
             //set imageView to canvas drawable
-            imageView = (ImageView) findViewById(R.id.imageView);
+            imageView = (DrawView) findViewById(R.id.DrawView);
             imageView.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
-
-            imageView.setOnTouchListener(new View.OnTouchListener() {
-                public boolean onTouch(View v, MotionEvent event) {
-                    int action = event.getAction();
-                    switch (action) {
-                        case MotionEvent.ACTION_DOWN:
-                            currX = event.getX()*3;
-                            currY = event.getY()*3;
-                            //drawPoint(imgCanvas);
-                            break;
-                        case MotionEvent.ACTION_MOVE:
-                            currX = event.getX()*3;
-                            currY = event.getY()*3;
-                            //drawPoint(imgCanvas);
-                            break;
-                        case MotionEvent.ACTION_UP:
-                            currX = event.getX()*3;
-                            currY = event.getY()*3;
-                            //setPoint(imgCanvas);
-                            break;
-                        case MotionEvent.ACTION_CANCEL:
-                            break;
-                        default:
-                            break;
-
-                    }
-                    return true;
-                }
-            });
-
-            //setPoints(imgCanvas);
         }
     }
 
-/*    protected void drawPoints(Canvas canvas){
-        //Button button = (Button) findViewById(R.id.button2);
-
-        mPaint.setColor(Color.WHITE);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeWidth(25);
-        mPaint.setStrokeCap(Cap.ROUND);
-
-    }*/
-
-    public void setPoint(View view){
-        mPaint.setColor(Color.GREEN);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeWidth(25);
-        mPaint.setStrokeCap(Cap.ROUND);
-
-
-        Button button = (Button) findViewById(R.id.button2);
-
-        imgCanvas.drawPoint(currX,currY,mPaint);
-
-        pixels[iterator] = new Pixel( Math.round(currX), Math.round(currY) );
-        if (pixels[iterator].getX() > maxX){ maxX = pixels[iterator].getX();}
-        if (pixels[iterator].getX() < minX){ minX = pixels[iterator].getX();}
-        if (pixels[iterator].getY() > maxY){ maxY = pixels[iterator].getY();}
-        if (pixels[iterator].getY() < minY){ minY = pixels[iterator].getY();}
-        xy = Float.toString(currX) + ", " + Float.toString(currY);
-
-        if(iterator < 3){ iterator++; }
-        else{ transform();}
-        button.setText(xy + ", " + buttonText[iterator]);
-
+    final float[] getPointerCoords(ImageView view, float x, float y){
+        final float[] tempCoords = new float[] {x,y};
+        Matrix matrix = new Matrix();
+        view.getImageMatrix().invert(matrix);
+        matrix.postTranslate(view.getScrollX(), view.getScrollY());
+        matrix.mapPoints(tempCoords);
+        return tempCoords;
     }
 
-    protected void transform(){
+    public void transform(View view){
 
-        maxX += 50;
-        minX -= 50;
-        maxY += 50;
-        minY -= 50;
-
-        int width = maxX - minX;
-        int height = maxY - minY;
         double[] pointArray = new double[8];
 
-        //scale points to cropped array
-        for (int i = 0; i < 8; i+=2){
-            pointArray[i] = pixels[i/2].getX()-minX;
-            pointArray[i+1] = pixels[i/2].getY()-minY;
-        }
+        float[] topLeft = getPointerCoords(imageView,imageView.topLeft.x,imageView.topLeft.y);
+        float[] topRight = getPointerCoords(imageView,imageView.topRight.x,imageView.topRight.y);
+        float[] bottomRight = getPointerCoords(imageView,imageView.bottomRight.x,imageView.bottomRight.y);
+        float[] bottomLeft = getPointerCoords(imageView,imageView.bottomLeft.x,imageView.bottomLeft.y);
 
-        //int[] crop = new int[width*height];
-        //rotatedbmp.getPixels(crop, 0, width, minX, minY, width, height);
-
-        int[] dimens = new int[4];
-        dimens[0] = width;
-        dimens[1] = height;
-        dimens[2] = minX;
-        dimens[3] = minY;
+        pointArray[0] = topLeft[0];
+        pointArray[1]= topLeft[1];
+        pointArray[2] = topRight[0];
+        pointArray[3] = topRight[1];
+        pointArray[4] = bottomRight[0];
+        pointArray[5] = bottomRight[1];
+        pointArray[6] = bottomLeft[0];
+        pointArray[7] = bottomLeft[1];
 
         Intent intent = new Intent(this, projTransform.class);
-        //intent.putExtra("cropped", crop);
         intent.setData(imgUri);
         intent.putExtra("points", pointArray);
-        intent.putExtra("dimens", dimens);
+        intent.putExtra("rotate", rotate);
         startActivity(intent);
 
+    }
+
+    public int getCameraPhotoOrientation(Context context, Uri imageUri){
+        int temp = 0;
+        String[] filePathColumn = {MediaStore.Images.Media.DATA};
+
+        Cursor cursor = getContentResolver().query(imgUri, filePathColumn, null, null, null);
+        cursor.moveToFirst();
+
+        int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+        String imagePath = cursor.getString(columnIndex);
+        cursor.close();
+        try {
+            context.getContentResolver().notifyChange(imageUri, null);
+            File imageFile = new File(imagePath);
+
+            ExifInterface exif = new ExifInterface(imageFile.getAbsolutePath());
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    temp = 270;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    temp = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    temp = 90;
+                    break;
+            }
+
+            Log.i("RotateImage", "Exif orientation: " + orientation);
+            Log.i("RotateImage", "Rotate value: " + temp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return temp;
     }
 
 
@@ -229,13 +167,7 @@ public class imgDisplay extends Activity{
     private Canvas imgCanvas;
     private Bitmap bmp;
     private Bitmap rotatedbmp;
-    private ImageView imageView;
-    private float currX, currY;
-    private String xy;
-    private Pixel[] pixels = new Pixel[4];
-    private int minX = 100000, minY = 100000, maxX = 0, maxY = 0;
-    private Paint mPaint = new Paint();
-    //private Button button = (Button) findViewById(R.id.button2);
-    private final String[] buttonText = {"Select point (0,0)", "Select point (0,1)", "Select point (1,0)", "Select point (1,1)"};
-    private int iterator = 0;
+    private DrawView imageView;
+    private int rotate;
+
 }
