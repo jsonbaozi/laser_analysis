@@ -8,27 +8,15 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Paint.Cap;
-
-import android.graphics.PointF;
-import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.AttributeSet;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.View.OnTouchListener;
 import android.widget.ImageView;
-import android.widget.Button;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -58,6 +46,8 @@ public class imgDisplay extends Activity{
                             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_FULLSCREEN
                             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
+        viewW = imageView.getWidth();
+        viewH = imageView.getHeight();
     }
 
     protected void display(Uri imgUri){
@@ -169,5 +159,6 @@ public class imgDisplay extends Activity{
     private Bitmap rotatedbmp;
     private DrawView imageView;
     private int rotate;
+    public static int viewW, viewH;
 
 }

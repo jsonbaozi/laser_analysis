@@ -4,11 +4,12 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 
 
 public class MainActivity extends Activity {
@@ -18,6 +19,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        lButton = (Button) findViewById(R.id.l_button);
+        wButton = (Button) findViewById(R.id.w_button);
+        lButton.setText("Length = " + String.valueOf(length));
+        wButton.setText("Width = " + String.valueOf(width));
     }
 
     @Override
@@ -44,23 +49,24 @@ public class MainActivity extends Activity {
 
     public void pickPhoto(View view) {
 
-        /*Log.i("pickPhoto", "open gallery");
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
-        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(cameraIntent, PICK_IMAGE);
-        }*/
-
         Intent getIntent = new Intent(Intent.ACTION_GET_CONTENT);
         getIntent.setType("image/*");
 
-        Intent pickIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        Intent pickIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         pickIntent.setType("image/*");
 
         Intent chooserIntent = Intent.createChooser(getIntent, "Select Image");
         chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{pickIntent});
 
         startActivityForResult(chooserIntent, PICK_IMAGE);
+    }
+
+    public void takePhoto(View view){
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(cameraIntent, TAKE_IMAGE);
+        }
     }
 
     @Override
@@ -75,9 +81,24 @@ public class MainActivity extends Activity {
 
             startActivity(intent);
         }
+
+        if (requestCode == TAKE_IMAGE && resultCode == RESULT_OK && data != null ) {
+            Intent intent = new Intent(this, imgDisplay.class);
+
+            Uri imageUri = data.getData();
+            intent.setData(imageUri);
+
+            startActivity(intent);
+        }
     }
 
     public final static int PICK_IMAGE = 100;
+    public final static int TAKE_IMAGE = 101;
+    private Button lButton;
+    private Button wButton;
+    public static double length = 2;
+    public static double width = 3.5;
+    public static double scale = Math.sqrt(70000/(length*width));
 }
 /* stackoverflow posts:
 screen coord -> bitmap: http://stackoverflow.com/questions/4933612/how-to-convert-coordinates-of-the-image-view-to-the-coordinates-of-the-bitmap/9945896#9945896

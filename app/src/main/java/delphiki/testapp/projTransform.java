@@ -2,19 +2,16 @@ package delphiki.testapp;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Paint.Cap;
 import android.util.Log;
 import android.widget.ImageView;
+import android.graphics.Color;
+import android.widget.TextView;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -118,7 +115,8 @@ public class projTransform extends Activity{
                     destPixels[(i*destWidth)+j] = rotatedbmp.getPixel(temp[0],temp[1]);
                 }
             }
-            display(destPixels, destWidth, destHeight);
+            display(destPixels);
+            display2(destPixels);
         }
     }
 
@@ -159,20 +157,34 @@ public class projTransform extends Activity{
         return new int[] {(int) Math.round(primeVector[0]/primeVector[2]), (int) Math.round(primeVector[1]/primeVector[2])};
     }
 
-    private void display(int[] pixels, int width, int height) {
-        mPaint.setColor(Color.GREEN);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeWidth(25);
-        mPaint.setStrokeCap(Cap.ROUND);
+    private void display(int[] pixels) {
 
-        Bitmap cropped = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.RGB_565);
-
+        Bitmap cropped = Bitmap.createBitmap(pixels, destWidth, destHeight, Bitmap.Config.RGB_565);
         //set imageView
         imageView = (ImageView) findViewById(R.id.imageView2);
         imageView.setImageBitmap(cropped);
     }
 
-    private String toString(double[][] temp){
+    private void display2(int[] pixels) {
+        int[] grey = new int[pixels.length];
+        for(int i=0;i<pixels.length;i++){
+            grey[i] = (Color.green(pixels[i])+Color.red(pixels[i])+Color.blue(pixels[i]))/3;
+        }
+        pixelArray = grey;
+        lmsFit lms = new lmsFit();
+        int[] lmsFitted = lms.minSolve(new double[]{10,175,100,10,10,1},1e-6,1000,20);
+        int[] fittedPixels = new int[lmsFitted.length];
+        for(int i=0;i<grey.length;i++){
+            fittedPixels[i] = Color.rgb(lmsFitted[i], lmsFitted[i], lmsFitted[i]);
+        }
+
+        Bitmap cropped = Bitmap.createBitmap(fittedPixels, destWidth, destHeight, Bitmap.Config.RGB_565);
+        //set imageView
+        imageView = (ImageView) findViewById(R.id.imageView3);
+        imageView.setImageBitmap(cropped);
+    }
+
+/*    private String toString(double[][] temp){
         String string = " \n";
         for(int i=0;i<temp.length;i++){
             for(int j=0;j<temp[0].length;j++){
@@ -189,16 +201,14 @@ public class projTransform extends Activity{
             string += String.valueOf(temp[i])+" ";
         }
         return string;
-    }
+    }*/
 
     private double[] pointArray;
+    public static int[] pixelArray;
     private int rotate;
-    private int[] dimens;
     private Bitmap tempBmp;
     private ImageView imageView;
-    //private Canvas imgCanvas;
-    private Paint mPaint = new Paint();
-    private static int destHeight = 200;
-    private static int destWidth = 350;
+    public static int destHeight = (int) Math.round(MainActivity.length*MainActivity.scale);
+    public static int destWidth = (int) Math.round(MainActivity.width*MainActivity.scale);
 
 }
