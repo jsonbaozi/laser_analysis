@@ -91,12 +91,13 @@ public class imgDisplay extends Activity{
 
     public void transform(View view){
 
-        double[] pointArray = new double[8];
+        double[] pointArray = new double[10];
 
         float[] topLeft = getPointerCoords(imageView,imageView.topLeft.x,imageView.topLeft.y);
         float[] topRight = getPointerCoords(imageView,imageView.topRight.x,imageView.topRight.y);
         float[] bottomRight = getPointerCoords(imageView,imageView.bottomRight.x,imageView.bottomRight.y);
         float[] bottomLeft = getPointerCoords(imageView,imageView.bottomLeft.x,imageView.bottomLeft.y);
+        float[] middle = getPointerCoords(imageView,imageView.middle.x,imageView.middle.y);
 
         pointArray[0] = topLeft[0];
         pointArray[1]= topLeft[1];
@@ -106,6 +107,11 @@ public class imgDisplay extends Activity{
         pointArray[5] = bottomRight[1];
         pointArray[6] = bottomLeft[0];
         pointArray[7] = bottomLeft[1];
+        pointArray[8] = middle[0];
+        pointArray[9] = middle[1];
+
+        Log.i("topleft",String.valueOf(topLeft[0])+" "+String.valueOf(topLeft[1]));
+        Log.i("mid",String.valueOf(middle[0])+" "+String.valueOf(middle[1]));
 
         Intent intent = new Intent(this, projTransform.class);
         intent.setData(imgUri);

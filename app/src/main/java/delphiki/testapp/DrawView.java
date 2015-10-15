@@ -20,10 +20,11 @@ public class DrawView extends ImageView {
     PointF topRight = new PointF(550,200);
     PointF bottomLeft = new PointF(200,550);
     PointF bottomRight = new PointF(550,550);
+    PointF middle = new PointF(375,375);
 
-    float sizeOfRect = 85;
+    float sizeOfRect = 100;
 
-    private final int NONE = -1, TOUCH_TOP_LEFT = 0, TOUCH_TOP_RIGHT = 1, TOUCH_BOT_LEFT = 2, TOUCH_BOT_RIGHT = 3;
+    private final int NONE = -1, TOUCH_TOP_LEFT = 0, TOUCH_TOP_RIGHT = 1, TOUCH_BOT_LEFT = 2, TOUCH_BOT_RIGHT = 3, TOUCH_MIDDLE = 4;
     int currentTouch = NONE;
 
     public DrawView(Context context) {
@@ -49,7 +50,7 @@ public class DrawView extends ImageView {
 
         lPaint.setColor(Color.RED);
         lPaint.setStyle(Paint.Style.STROKE);
-        lPaint.setStrokeWidth(5);
+        lPaint.setStrokeWidth(2);
 
         super.onDraw(canvas);
 
@@ -58,10 +59,13 @@ public class DrawView extends ImageView {
         canvas.drawLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y, lPaint);
         canvas.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y, lPaint);
 
-        canvas.drawPoint(topLeft.x, topLeft.y, pPaint);
+/*        canvas.drawPoint(topLeft.x, topLeft.y, pPaint);
         canvas.drawPoint(topRight.x, topRight.y, pPaint);
         canvas.drawPoint(bottomLeft.x, bottomLeft.y, pPaint);
-        canvas.drawPoint(bottomRight.x, bottomRight.y, pPaint);
+        canvas.drawPoint(bottomRight.x, bottomRight.y, pPaint);*/
+        canvas.drawPoint(middle.x, middle.y, pPaint);
+
+        canvas.drawCircle(middle.x, middle.y, 32f, lPaint);
     }
 
     @Override
@@ -76,6 +80,7 @@ public class DrawView extends ImageView {
                 RectF topRightTouchArea = new RectF(topRight.x - sizeOfRect, topRight.y - sizeOfRect, topRight.x + sizeOfRect, topRight.y + sizeOfRect);
                 RectF bottomLeftTouchArea = new RectF(bottomLeft.x - sizeOfRect, bottomLeft.y - sizeOfRect, bottomLeft.x + sizeOfRect, bottomLeft.y + sizeOfRect);
                 RectF bottomRightTouchArea = new RectF(bottomRight.x - sizeOfRect, bottomRight.y - sizeOfRect, bottomRight.x + sizeOfRect, bottomRight.y + sizeOfRect);
+                RectF middleTouchArea = new RectF(middle.x - sizeOfRect, middle.y - sizeOfRect, middle.x + sizeOfRect, middle.y + sizeOfRect);
 
                 if (topLeftTouchArea.contains(event.getX(), event.getY())) {
                     currentTouch = TOUCH_TOP_LEFT;
@@ -93,6 +98,10 @@ public class DrawView extends ImageView {
                     currentTouch = TOUCH_BOT_RIGHT;
                     distX = event.getX() - bottomRight.x;
                     distY = event.getY() - bottomRight.y;
+                } else if (middleTouchArea.contains(event.getX(), event.getY())){
+                    currentTouch = TOUCH_MIDDLE;
+                    distX = event.getX() - middle.x;
+                    distY = event.getY() - middle.y;
                 } else {
                     return false; //Return false if user touches none of the corners
                 }
@@ -119,6 +128,11 @@ public class DrawView extends ImageView {
                     case TOUCH_BOT_RIGHT:
                         bottomRight.x = event.getX() - distX;
                         bottomRight.y = event.getY() - distY;
+                        invalidate();
+                        return true;
+                    case TOUCH_MIDDLE:
+                        middle.x = event.getX() - distX;
+                        middle.y = event.getY() - distY;
                         invalidate();
                         return true;
                 }
@@ -166,6 +180,16 @@ public class DrawView extends ImageView {
                         bottomRight.y = event.getY() - distY;
                         if (bottomRight.y < 0){ bottomRight.y = 0; }
                         if (bottomRight.y > imgDisplay.viewH){ bottomRight.y = imgDisplay.viewH; }
+                        invalidate();
+                        currentTouch = NONE;
+                        return true;
+                    case TOUCH_MIDDLE:
+                        middle.x = event.getX() - distX;
+                        if (middle.x < 0){ middle.x = 0; }
+                        if (middle.x > imgDisplay.viewW){ middle.x = imgDisplay.viewW; }
+                        middle.y = event.getY() - distY;
+                        if (middle.y < 0){ middle.y = 0; }
+                        if (middle.y > imgDisplay.viewH){ middle.y = imgDisplay.viewH; }
                         invalidate();
                         currentTouch = NONE;
                         return true;

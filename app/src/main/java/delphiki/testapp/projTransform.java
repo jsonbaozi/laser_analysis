@@ -1,6 +1,7 @@
 package delphiki.testapp;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -8,6 +9,7 @@ import android.os.Bundle;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.content.ClipboardManager;
 import android.util.Log;
 import android.widget.ImageView;
 import android.graphics.Color;
@@ -15,6 +17,9 @@ import android.widget.TextView;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.MathContext;
+
 
 public class projTransform extends Activity{
 
@@ -24,10 +29,10 @@ public class projTransform extends Activity{
         setContentView(R.layout.activity_proj_transform);
 
         Intent parent_intent = getIntent();
-        Uri imgUri = parent_intent.getData();
+        //pointArray[0-9] = topleft, topright, bottomright, bottomleft, middle
         pointArray = parent_intent.getDoubleArrayExtra("points");
         rotate = parent_intent.getIntExtra("rotate", 0);
-        transform(imgUri,pointArray);
+        transform(parent_intent.getData(),pointArray);
     }
     //A*B = C
     private static double[][] mMult(double[][] A, double[][] B){
@@ -115,8 +120,11 @@ public class projTransform extends Activity{
                     destPixels[(i*destWidth)+j] = rotatedbmp.getPixel(temp[0],temp[1]);
                 }
             }
+
+            double[][] reverseMap = mMult(destMap, mInvert3x3(sourceMap));
+            int[] middle = pixelMap(reverseMap,pointArray[9],pointArray[8]);
             display(destPixels);
-            display2(destPixels);
+            display2(destPixels, middle);
         }
     }
 
@@ -158,33 +166,105 @@ public class projTransform extends Activity{
     }
 
     private void display(int[] pixels) {
-
         Bitmap cropped = Bitmap.createBitmap(pixels, destWidth, destHeight, Bitmap.Config.RGB_565);
         //set imageView
         imageView = (ImageView) findViewById(R.id.imageView2);
         imageView.setImageBitmap(cropped);
     }
 
-    private void display2(int[] pixels) {
-        int[] grey = new int[pixels.length];
-        for(int i=0;i<pixels.length;i++){
-            grey[i] = (Color.green(pixels[i])+Color.red(pixels[i])+Color.blue(pixels[i]))/3;
-        }
-        pixelArray = grey;
-        lmsFit lms = new lmsFit();
-        int[] lmsFitted = lms.minSolve(new double[]{10,175,100,10,10,1},1e-6,1000,20);
-        int[] fittedPixels = new int[lmsFitted.length];
-        for(int i=0;i<grey.length;i++){
-            fittedPixels[i] = Color.rgb(lmsFitted[i], lmsFitted[i], lmsFitted[i]);
+    private void display2(int[] pixels, int[] middle) {
+        int[][] grey = new int[fitCrop][fitCrop];
+        int i0 = middle[1]-(fitCrop/2), i1 = middle[1]+(fitCrop/2), j0 = middle[0]-(fitCrop/2), j1 = middle[0]+(fitCrop/2);
+        //Log.i("middle",String.valueOf(middle[0])+" "+String.valueOf(middle[1]));
+        for(int i=i0;i<i1;i++){
+            for(int j=j0;j<j1;j++){
+                grey[i-i0][j-j0] = (Color.green(pixels[(i*destWidth)+j])+Color.red(pixels[(i*destWidth)+j])+Color.blue(pixels[(i*destWidth)+j]))/3;;
+            }
         }
 
-        Bitmap cropped = Bitmap.createBitmap(fittedPixels, destWidth, destHeight, Bitmap.Config.RGB_565);
+        pixelArray = grey;
+        lmsFit lms = new lmsFit();
+        int[] lmsFitted = lms.minSolve(new double[]{10,60,60,25,25,1},1e-6,1000,20);
+        int[] fittedPixels = new int[lmsFitted.length];
+        //scale fitted value to 255 max
+
+        double max = 0;
+        for(int i=0;i<lmsFitted.length;i++){
+            if (max<lmsFitted[i]){ max = lmsFitted[i]; }
+        }
+        max = (255/max);
+        double temp;
+        int[] color;
+        for(int i=0;i<lmsFitted.length;i++){
+            temp = lmsFitted[i]*max;
+            color = toColor(temp);
+            fittedPixels[i] = Color.rgb(color[0], color[1], color[2]);
+        }
+
+/*        for(int i=0;i<lmsFitted.length;i++) {
+            fittedPixels[i] = Color.rgb(lmsFitted[i], lmsFitted[i], lmsFitted[i]);
+        }*/
+
+        Bitmap cropped = Bitmap.createBitmap(fittedPixels, fitCrop, fitCrop, Bitmap.Config.RGB_565);
         //set imageView
         imageView = (ImageView) findViewById(R.id.imageView3);
         imageView.setImageBitmap(cropped);
+
+        //values[0] = wx; values[1] = wy; values[2] = ellipticity;
+        double values[] = new double[3];
+        double wx = (lms.finalBeta[3]/100)*25.4;
+        double wy = (lms.finalBeta[4]/100)*25.4;
+        MathContext mc = new MathContext(4);
+
+        BigDecimal bdx = new BigDecimal(wx);
+        bdx = bdx.round(mc);
+        String text = "wx = "+String.valueOf(bdx.doubleValue())+"mm   ";
+
+        BigDecimal bdy = new BigDecimal(wy);
+        bdy = bdy.round(mc);
+        text += "wy = "+String.valueOf(bdy.doubleValue())+"mm";
+
+        double ellipticity;
+        ellipticity = (wx > wy ? (wx-wy)/((wx+wy)/2) : (wy-wx)/((wx+wy)/2)) ;
+        BigDecimal bde = new BigDecimal(ellipticity);
+        bde = bde.round(mc);
+        text += "\n"+"Ellipticity = "+String.valueOf(bde.doubleValue());
+
+        TextView textView = (TextView) findViewById(R.id.textView);
+        textView.setText(text);
+
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("beta values", text);
+        clipboard.setPrimaryClip(clip);
     }
 
-/*    private String toString(double[][] temp){
+    private int[] toColor(double color){
+        int[] temp = new int[3];
+        if (color >= 204){
+            temp[0] = 255;
+            temp[1] = (int) Math.round(255 - (color - 204)*5);
+            temp[2] = 0;
+        } else if (color >= 153){
+            temp[0] = (int) Math.round((color-153)*5);
+            temp[1] = 255;
+            temp[2] = 0;
+        } else if (color >= 102){
+            temp[0] = 0;
+            temp[1] = 255;
+            temp[2] = (int) Math.round(255 - (color - 102)*5);
+        } else if (color >= 51){
+            temp[0] = 0;
+            temp[1] = (int) Math.round((color-51)*4);
+            temp[2] = 255;
+        } else {
+            temp[0] = (int) Math.round(255- color*5);
+            temp[1] = 0;
+            temp[2] = 255;
+        }
+        return temp;
+    }
+
+    private String toString(double[][] temp){
         String string = " \n";
         for(int i=0;i<temp.length;i++){
             for(int j=0;j<temp[0].length;j++){
@@ -201,14 +281,14 @@ public class projTransform extends Activity{
             string += String.valueOf(temp[i])+" ";
         }
         return string;
-    }*/
+    }
 
     private double[] pointArray;
-    public static int[] pixelArray;
+    public static int[][] pixelArray;
     private int rotate;
     private Bitmap tempBmp;
     private ImageView imageView;
     public static int destHeight = (int) Math.round(MainActivity.length*MainActivity.scale);
     public static int destWidth = (int) Math.round(MainActivity.width*MainActivity.scale);
-
+    public static int fitCrop = 120;
 }

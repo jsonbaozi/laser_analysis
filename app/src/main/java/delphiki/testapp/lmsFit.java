@@ -35,13 +35,14 @@ public class lmsFit {
                     lambda *= nu;
                 }
                 n++;
-                Log.e("n",String.valueOf(n));
-                Log.e("beta2 value", toString(beta2.getRowPackedCopy()));
+                //Log.e("n",String.valueOf(n));
+                //Log.e("beta2 value", toString(beta2.getRowPackedCopy()));
                 beta1 = beta2;
                 dx0 = dx;
                 s0 = s1;
             }
         }
+        finalBeta = beta1.getRowPackedCopy();
         return toPixelArray(beta1.getRowPackedCopy());
 
     }
@@ -72,10 +73,10 @@ public class lmsFit {
     }
 
     private Matrix F(double[] beta){
-        Matrix diffs = new Matrix(projTransform.destHeight, projTransform.destWidth);
-        for (int i=0;i<projTransform.destHeight;i++){
-            for (int j=0;j<projTransform.destWidth;j++){
-                diffs.set(i,j,gaussian(i,j,beta) - projTransform.pixelArray[i*projTransform.destWidth+j]);
+        Matrix diffs = new Matrix(projTransform.fitCrop, projTransform.fitCrop);
+        for (int i=0;i<projTransform.fitCrop;i++){
+            for (int j=0;j<projTransform.fitCrop;j++){
+                diffs.set(i,j,gaussian(i,j,beta) - projTransform.pixelArray[i][j]);
             }
         }
         return diffs;
@@ -83,10 +84,10 @@ public class lmsFit {
 
     private Matrix F(Matrix beta){
         double[] temp = beta.getRowPackedCopy();
-        Matrix diffs = new Matrix(projTransform.destHeight, projTransform.destWidth);
-        for (int i=0;i<projTransform.destHeight;i++){
-            for (int j=0;j<projTransform.destWidth;j++){
-                diffs.set(i,j,gaussian(i,j,temp) - (double) projTransform.pixelArray[i*projTransform.destWidth+j]);
+        Matrix diffs = new Matrix(projTransform.fitCrop, projTransform.fitCrop);
+        for (int i=0;i<projTransform.fitCrop;i++){
+            for (int j=0;j<projTransform.fitCrop;j++){
+                diffs.set(i,j,gaussian(i,j,temp) - projTransform.pixelArray[i][j]);
             }
         }
         return diffs;
@@ -117,11 +118,10 @@ public class lmsFit {
     }
 
     private int[] toPixelArray(double[] beta){
-        int[] temp = new int[projTransform.destHeight*projTransform.destWidth];
-
-        for (int i=0;i<projTransform.destHeight;i++){
-            for (int j=0;j<projTransform.destWidth;j++){
-                temp[i*projTransform.destWidth + j] = (int) Math.round(gaussian(i,j,beta));
+        int[] temp = new int[projTransform.fitCrop*projTransform.fitCrop];
+        for (int i=0;i<projTransform.fitCrop;i++){
+            for (int j=0;j<projTransform.fitCrop;j++){
+                temp[i*projTransform.fitCrop + j] = (int) Math.round(gaussian(i,j,beta));
             }
         }
         return temp;
@@ -135,5 +135,6 @@ public class lmsFit {
         return string;
     }
 
-    private double d = 1e-6;
+    private double d = 1;
+    double[] finalBeta;
 }
