@@ -1,28 +1,78 @@
 package delphiki.testapp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 
 
 public class MainActivity extends Activity {
+
+    final Context context = this;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        lButton = (Button) findViewById(R.id.l_button);
-        wButton = (Button) findViewById(R.id.w_button);
-        lButton.setText("Length = " + String.valueOf(length));
-        wButton.setText("Width = " + String.valueOf(width));
+        dimensButton = (Button) findViewById(R.id.dimensButton);
+        dimensButton.setText("Length = " + String.valueOf(length) + "   Width = " + String.valueOf(width));
+
+        dimensButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LayoutInflater li = LayoutInflater.from(context);
+                View promptView = li.inflate(R.layout.dimens_prompt, null);
+
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                        context);
+
+                // set prompts.xml to alertdialog builder
+                alertDialogBuilder.setView(promptView);
+
+                final EditText lInput = (EditText) promptView
+                        .findViewById(R.id.LengthInput);
+                final EditText wInput = (EditText) promptView
+                        .findViewById(R.id.WidthInput);
+
+                // set dialog message
+                alertDialogBuilder
+                        .setPositiveButton("Set Dimensions",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog,int id) {
+                                        String lString = lInput.getText().toString();
+                                        String wString = wInput.getText().toString();
+                                        if (!lString.isEmpty() && !wString.isEmpty()) {
+                                            length = Double.parseDouble(lString);
+                                            width = Double.parseDouble(wString);
+                                            dimensButton.setText("Length = " + String.valueOf(length) + "   Width = " + String.valueOf(width));
+                                        }
+                                    }
+                                })
+                        .setNegativeButton("Cancel",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog,int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+
+                // create alert dialog
+                AlertDialog alertDialog = alertDialogBuilder.create();
+
+                // show it
+                alertDialog.show();
+            }
+        });
     }
 
     @Override
@@ -94,17 +144,8 @@ public class MainActivity extends Activity {
 
     public final static int PICK_IMAGE = 100;
     public final static int TAKE_IMAGE = 101;
-    private Button lButton;
-    private Button wButton;
-    public static double length = 2;
-    public static double width = 3.5;
+    private Button dimensButton;
+    public static double length = 1;
+    public static double width = 1;
     public static double scale = Math.sqrt(70000/(length*width));
 }
-/* stackoverflow posts:
-screen coord -> bitmap: http://stackoverflow.com/questions/4933612/how-to-convert-coordinates-of-the-image-view-to-the-coordinates-of-the-bitmap/9945896#9945896
-projective transform:   http://math.stackexchange.com/questions/296794/finding-the-transform-matrix-from-4-projected-points-with-javascript
-screen orientation:     http://stackoverflow.com/questions/12726860/android-how-to-detect-the-image-orientation-portrait-or-landscape-picked-fro/12727053#12727053
-3x3 invert:             https://en.wikipedia.org/wiki/Invertible_matrix#Inversion_of_3.C3.973_matrices
-
-
- */

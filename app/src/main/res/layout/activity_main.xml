@@ -31,13 +31,7 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/l_button"
-            android:layout_weight="0.5" />
-
-        <Button
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/w_button"
+            android:id="@+id/dimensButton"
             android:layout_weight="0.5" />
 
     </LinearLayout>
