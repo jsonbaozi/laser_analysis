@@ -165,6 +165,38 @@ public class projTransform extends Activity{
         return new int[] {(int) Math.round(primeVector[0]/primeVector[2]), (int) Math.round(primeVector[1]/primeVector[2])};
     }
 
+    //scale fitted value to <scale> max
+    private int[] scaleTo(double scale, int[] pixels){
+        double max = 0;
+        for(int i=0;i<pixels.length;i++){
+            if (max<pixels[i]){ max = pixels[i]; }
+        }
+        max = (scale/max);
+
+        for(int i=0;i<pixels.length;i++){
+            pixels[i]*=max;
+        }
+        return pixels;
+    }
+
+    private int[] graph(double x, double y, int[] fitted, int[] greyScale){
+
+        int ix = (int) Math.round(x);
+        int iy = (int) Math.round(y);
+
+        for (int i=0; i<fitCrop; i++){
+            //fitted values graph
+            greyScale[(fitted[ix*fitCrop + i]*(fitCrop/3)/255)*fitCrop + i] = -2;
+            greyScale[i*fitCrop + (fitted[i*fitCrop + iy]*(fitCrop/3)/255)] = -2;
+
+            //original value graph
+            greyScale[(greyScale[ix*fitCrop + i]*(fitCrop/3)/255)*fitCrop + i] = -1;
+            greyScale[i*fitCrop + (greyScale[i*fitCrop + iy]*(fitCrop/3)/255)] = -1;
+        }
+
+        return greyScale;
+    }
+
     private void display(int[] pixels) {
         Bitmap cropped = Bitmap.createBitmap(pixels, destWidth, destHeight, Bitmap.Config.RGB_565);
         //set imageView
@@ -173,62 +205,55 @@ public class projTransform extends Activity{
     }
 
     private void display2(int[] pixels, int[] middle) {
-        int[][] grey = new int[fitCrop][fitCrop];
+        int[] grey = new int[fitCrop*fitCrop];
         int i0 = middle[1]-(fitCrop/2), i1 = middle[1]+(fitCrop/2), j0 = middle[0]-(fitCrop/2), j1 = middle[0]+(fitCrop/2);
         //Log.i("middle",String.valueOf(middle[0])+" "+String.valueOf(middle[1]));
         for(int i=i0;i<i1;i++){
             for(int j=j0;j<j1;j++){
-                grey[i-i0][j-j0] = (Color.green(pixels[(i*destWidth)+j])+Color.red(pixels[(i*destWidth)+j])+Color.blue(pixels[(i*destWidth)+j]))/3;;
+                pixelArray[i-i0][j-j0] = (Color.green(pixels[(i*destWidth)+j])+Color.red(pixels[(i*destWidth)+j])+Color.blue(pixels[(i*destWidth)+j]))/3;
+                grey[(i-i0)*fitCrop + (j-j0)] = (Color.green(pixels[(i*destWidth)+j])+Color.red(pixels[(i*destWidth)+j])+Color.blue(pixels[(i*destWidth)+j]))/3;
             }
         }
 
-        pixelArray = grey;
         lmsFit lms = new lmsFit();
         int[] lmsFitted = lms.minSolve(new double[]{10,60,60,25,25,1},1e-6,1000,20);
-        int[] fittedPixels = new int[lmsFitted.length];
-        //scale fitted value to 255 max
+        //int[] fittedPixels = new int[grey.length];
 
-        double max = 0;
-        for(int i=0;i<lmsFitted.length;i++){
-            if (max<lmsFitted[i]){ max = lmsFitted[i]; }
-        }
-        max = (255/max);
+        int[] withGraph = graph(lms.finalBeta[1], lms.finalBeta[2], scaleTo(255, lmsFitted), scaleTo(255, grey));
         double temp;
         int[] color;
-        for(int i=0;i<lmsFitted.length;i++){
-            temp = lmsFitted[i]*max;
-            color = toColor(temp);
-            fittedPixels[i] = Color.rgb(color[0], color[1], color[2]);
+        for(int i=0;i<withGraph.length;i++){
+            color = toColor(withGraph[i]);
+            withGraph[i] = Color.rgb(color[0], color[1], color[2]);
         }
 
 /*        for(int i=0;i<lmsFitted.length;i++) {
             fittedPixels[i] = Color.rgb(lmsFitted[i], lmsFitted[i], lmsFitted[i]);
         }*/
 
-        Bitmap cropped = Bitmap.createBitmap(fittedPixels, fitCrop, fitCrop, Bitmap.Config.RGB_565);
+        Bitmap cropped = Bitmap.createBitmap(withGraph, fitCrop, fitCrop, Bitmap.Config.RGB_565);
         //set imageView
         imageView = (ImageView) findViewById(R.id.imageView3);
         imageView.setImageBitmap(cropped);
 
         //values[0] = wx; values[1] = wy; values[2] = ellipticity;
-        double values[] = new double[3];
-        double wx = (lms.finalBeta[3]/100)*25.4;
-        double wy = (lms.finalBeta[4]/100)*25.4;
+        double wx = (lms.finalBeta[3])/scale;
+        double wy = (lms.finalBeta[4])/scale;
         MathContext mc = new MathContext(4);
 
         BigDecimal bdx = new BigDecimal(wx);
         bdx = bdx.round(mc);
-        String text = "wx = "+String.valueOf(bdx.doubleValue())+"mm   ";
+        String text = "wx = "+String.valueOf(bdx.doubleValue())+"mm\n";
 
         BigDecimal bdy = new BigDecimal(wy);
         bdy = bdy.round(mc);
-        text += "wy = "+String.valueOf(bdy.doubleValue())+"mm";
+        text += "wy = "+String.valueOf(bdy.doubleValue())+"mm\n";
 
         double ellipticity;
         ellipticity = (wx > wy ? (wx-wy)/((wx+wy)/2) : (wy-wx)/((wx+wy)/2)) ;
         BigDecimal bde = new BigDecimal(ellipticity);
         bde = bde.round(mc);
-        text += "\n"+"Ellipticity = "+String.valueOf(bde.doubleValue());
+        text += "Ellipticity = "+String.valueOf(bde.doubleValue());
 
         TextView textView = (TextView) findViewById(R.id.textView);
         textView.setText(text);
@@ -238,24 +263,34 @@ public class projTransform extends Activity{
         clipboard.setPrimaryClip(clip);
     }
 
-    private int[] toColor(double color){
+    //greyscale to RGB based on intensity
+    //0 = R, 1 = G, 2 = B
+    private int[] toColor(double color) {
         int[] temp = new int[3];
-        if (color >= 204){
+        if (color >= 204) {
             temp[0] = 255;
-            temp[1] = (int) Math.round(255 - (color - 204)*5);
+            temp[1] = (int) Math.round(255 - (color - 204) * 5);
             temp[2] = 0;
-        } else if (color >= 153){
-            temp[0] = (int) Math.round((color-153)*5);
+        } else if (color >= 153) {
+            temp[0] = (int) Math.round((color - 153) * 5);
             temp[1] = 255;
             temp[2] = 0;
-        } else if (color >= 102){
+        } else if (color >= 102) {
             temp[0] = 0;
             temp[1] = 255;
-            temp[2] = (int) Math.round(255 - (color - 102)*5);
-        } else if (color >= 51){
+            temp[2] = (int) Math.round(255 - (color - 102) * 5);
+        } else if (color >= 51) {
             temp[0] = 0;
-            temp[1] = (int) Math.round((color-51)*4);
+            temp[1] = (int) Math.round((color - 51) * 4);
             temp[2] = 255;
+        } else if (color == -1){
+            temp[0] = 0;
+            temp[1] = 0;
+            temp[2] = 0;
+        } else if (color == -2){
+            temp[0] = 255;
+            temp[1] = 0;
+            temp[2] = 0;
         } else {
             temp[0] = (int) Math.round(255- color*5);
             temp[1] = 0;
@@ -283,12 +318,14 @@ public class projTransform extends Activity{
         return string;
     }
 
+    public static int fitCrop = 120;
     private double[] pointArray;
-    public static int[][] pixelArray;
+    public static int[][] pixelArray = new int[fitCrop][fitCrop];
     private int rotate;
     private Bitmap tempBmp;
     private ImageView imageView;
-    public static int destHeight = (int) Math.round(MainActivity.length*MainActivity.scale);
-    public static int destWidth = (int) Math.round(MainActivity.width*MainActivity.scale);
-    public static int fitCrop = 120;
+    public static double scale = Math.sqrt(70000/(MainActivity.length*MainActivity.width));
+    //destHeight destWidth pixel sizes of destination matrix
+    public static int destHeight = (int) Math.round(MainActivity.length*scale);
+    public static int destWidth = (int) Math.round(MainActivity.width*scale);
 }

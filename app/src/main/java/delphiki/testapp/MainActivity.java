@@ -47,7 +47,7 @@ public class MainActivity extends Activity {
 
                 // set dialog message
                 alertDialogBuilder
-                        .setPositiveButton("Set Dimensions",
+                        .setPositiveButton("Set Dimensions (mm)",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog,int id) {
                                         String lString = lInput.getText().toString();
@@ -147,5 +147,4 @@ public class MainActivity extends Activity {
     private Button dimensButton;
     public static double length = 1;
     public static double width = 1;
-    public static double scale = Math.sqrt(70000/(length*width));
 }

@@ -110,8 +110,8 @@ public class imgDisplay extends Activity{
         pointArray[8] = middle[0];
         pointArray[9] = middle[1];
 
-        Log.i("topleft",String.valueOf(topLeft[0])+" "+String.valueOf(topLeft[1]));
-        Log.i("mid",String.valueOf(middle[0])+" "+String.valueOf(middle[1]));
+        //Log.i("topleft",String.valueOf(topLeft[0])+" "+String.valueOf(topLeft[1]));
+        //Log.i("mid",String.valueOf(middle[0])+" "+String.valueOf(middle[1]));
 
         Intent intent = new Intent(this, projTransform.class);
         intent.setData(imgUri);
