@@ -5,11 +5,30 @@ import android.util.Log;
 import Jama.Matrix;
 import java.lang.Math;
 
+//finalBeta[0..5] = [a, middle(x), middle(y), wx, wy, b]
 public class lmsFit {
 
-    public int[] minSolve(double[] beta, double epsilon, double lambda0, double nu){
+    public double[] runFit(int[] pixels, int arrayWidth, double[] beta, double epsilon, double lambda0, double nu){
+        pixelArray = pixels;
+        width = arrayWidth;
+        length = pixels.length/(arrayWidth);
+
+/*        String string = " \n";
+
+        for (int i=0;i<length;i++){
+            for (int j=0;j<width;j++){
+                string += String.valueOf(pixelArray[i*width + j])+" ";
+            }
+            string += "\n";
+        }
+        Log.e("pixels", string);*/
+        //Log.e("length, width", String.valueOf(length)+" "+String.valueOf(width)+" "+String.valueOf(pixelArray.length));
+        return minSolve(beta, epsilon, lambda0, nu);
+    }
+
+    private double[] minSolve(double[] beta, double epsilon, double lambda0, double nu){
         double dS = epsilon+1;
-        Matrix beta1 = new Matrix(beta,beta.length);
+        beta1 = new Matrix(beta,beta.length);
         int n = 0;
         double lambda = lambda0;
         Matrix dx0 = new Matrix(6,1);
@@ -42,9 +61,8 @@ public class lmsFit {
                 s0 = s1;
             }
         }
-        finalBeta = beta1.getRowPackedCopy();
-        return toPixelArray(beta1.getRowPackedCopy());
-
+        return beta1.getRowPackedCopy();
+        //return toPixelArray(beta1.getRowPackedCopy());
     }
 
     private Matrix delta(double[] beta, double lambda){
@@ -73,29 +91,32 @@ public class lmsFit {
     }
 
     private Matrix F(double[] beta){
-        Matrix diffs = new Matrix(projTransform.fitCrop, projTransform.fitCrop);
-        for (int i=0;i<projTransform.fitCrop;i++){
-            for (int j=0;j<projTransform.fitCrop;j++){
-                diffs.set(i,j,gaussian(i,j,beta) - projTransform.pixelArray[i][j]);
+        Matrix diffs = new Matrix(length, width);
+        for (int i=0;i<length;i++){
+            for (int j=0;j<width;j++){
+                diffs.set(i,j,gaussian(i,j,beta) - pixelArray[i*width + j]);
             }
         }
+        //Log.e("diffs", toString(diffs.getRowPackedCopy()));
         return diffs;
     }
 
     private Matrix F(Matrix beta){
         double[] temp = beta.getRowPackedCopy();
-        Matrix diffs = new Matrix(projTransform.fitCrop, projTransform.fitCrop);
-        for (int i=0;i<projTransform.fitCrop;i++){
-            for (int j=0;j<projTransform.fitCrop;j++){
-                diffs.set(i,j,gaussian(i,j,temp) - projTransform.pixelArray[i][j]);
+        Matrix diffs = new Matrix(length, width);
+        for (int i=0;i<length;i++){
+            for (int j=0;j<width;j++){
+                diffs.set(i,j,gaussian(i,j,temp) - pixelArray[i*width + j]);
             }
         }
+        //Log.e("diffs", toString(diffs.getRowPackedCopy()));
         return diffs;
     }
 
     private double gaussian ( double i, double j, double[] beta){
         double e = Math.E;
-        return beta[0] * Math.exp(-2 * (Math.pow(j-beta[1],2)/Math.pow(beta[3],2) + Math.pow(i-beta[2],2)/Math.pow(beta[4],2))) + beta[5];
+        return beta[0] * Math.exp(-2 * (Math.pow(j-beta[1],2)/Math.pow(beta[3],2) +
+                Math.pow(i-beta[2],2)/Math.pow(beta[4],2))) + beta[5];
     }
 
     private double dot(double[] a, double[] b){
@@ -117,15 +138,18 @@ public class lmsFit {
         return sum;
     }
 
-    private int[] toPixelArray(double[] beta){
-        int[] temp = new int[projTransform.fitCrop*projTransform.fitCrop];
-        for (int i=0;i<projTransform.fitCrop;i++){
-            for (int j=0;j<projTransform.fitCrop;j++){
-                temp[i*projTransform.fitCrop + j] = (int) Math.round(gaussian(i,j,beta));
+    public int[] toPixelArray(Matrix beta1){
+        double[] beta = beta1.getRowPackedCopy();
+        int[] temp = new int[length*width];
+        for (int i=0;i<length;i++){
+            for (int j=0;j<width;j++){
+                temp[i*width + j] = (int) Math.round(gaussian(i,j,beta));
             }
         }
         return temp;
     }
+
+    public void getFittedData(){}
 
     private String toString(double[] temp){
         String string = " \n";
@@ -135,6 +159,19 @@ public class lmsFit {
         return string;
     }
 
+    private String toString(int[] temp){
+        String string = " \n";
+        for(int i=0;i<temp.length;i++){
+            string += String.valueOf(temp[i])+" ";
+        }
+        return string;
+    }
+
+
     private double d = 1;
-    double[] finalBeta;
+    //double[] finalBeta;
+    int[] pixelArray;
+    Matrix beta1;
+    int length;
+    int width;
 }

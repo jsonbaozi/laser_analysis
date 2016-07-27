@@ -87,47 +87,6 @@ public class projTransform extends Activity{
         return Y;
     }
 
-    private void transform(Uri data, double[] sourceArray){
-
-        if (data != null) {
-            try {
-                InputStream imgStream = getContentResolver().openInputStream(data);
-                tempBmp = BitmapFactory.decodeStream(imgStream);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-
-            Matrix matrix = new Matrix();
-            matrix.postRotate(rotate);
-            Bitmap rotatedbmp = Bitmap.createBitmap(tempBmp, 0, 0, tempBmp.getWidth(), tempBmp.getHeight(), matrix, true);
-
-
-            //map for original bmp
-            double[][] sourceMap = tMap(sourceArray);
-
-            //map for transformed bmp
-            double[] destArray = new double[] {0,0,destWidth,0,destWidth,destHeight,0,destHeight};
-            double[][] destMap = tMap(destArray);
-
-            // C = B*[A^(-1)]
-            double[][] finalMap = mMult(sourceMap, mInvert3x3(destMap));
-
-            int[] destPixels = new int[destHeight*destWidth];
-            int[] temp;
-            for(int i=0; i<destHeight-1; i++){
-                for(int j=0; j<destWidth-1; j++){
-                    temp = pixelMap(finalMap,i,j);
-                    destPixels[(i*destWidth)+j] = rotatedbmp.getPixel(temp[0],temp[1]);
-                }
-            }
-
-            double[][] reverseMap = mMult(destMap, mInvert3x3(sourceMap));
-            int[] middle = pixelMap(reverseMap,pointArray[9],pointArray[8]);
-            display(destPixels);
-            display2(destPixels, middle);
-        }
-    }
-
     //produces mapping matrix given corners
     //A,B in SE post
     private double[][] tMap(double[] pointArray){
@@ -165,6 +124,117 @@ public class projTransform extends Activity{
         return new int[] {(int) Math.round(primeVector[0]/primeVector[2]), (int) Math.round(primeVector[1]/primeVector[2])};
     }
 
+    private void transform(Uri data, double[] sourceArray){
+
+        if (data != null) {
+            try {
+                InputStream imgStream = getContentResolver().openInputStream(data);
+                tempBmp = BitmapFactory.decodeStream(imgStream);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            Matrix matrix = new Matrix();
+            matrix.postRotate(rotate);
+            Bitmap rotatedbmp = Bitmap.createBitmap(tempBmp, 0, 0, tempBmp.getWidth(), tempBmp.getHeight(), matrix, true);
+
+            //map for original bmp
+            double[][] sourceMap = tMap(sourceArray);
+
+            //scaling dimensions for estimating fine fitting
+            boolean wide = MainActivity.width > MainActivity.length;
+            double shorter = wide ? MainActivity.length : MainActivity.width;
+            double roughScale = 4*ESTIMATION_SIZE/(shorter);
+            int roughWidth = (int) Math.round(MainActivity.width*roughScale);
+            int roughLength = (int) Math.round(MainActivity.length*roughScale);
+            int ROUGH_SIDE = (roughWidth > roughLength) ? roughLength/4 : roughWidth/4;
+
+            //map for transformed bmp
+            double[] destArray = new double[] {0,0,roughWidth,0,roughWidth,roughLength,0,roughLength};
+            double[][] destMap = tMap(destArray);
+
+            // C = B*[A^(-1)]
+            double[][] finalMap = mMult(sourceMap, mInvert3x3(destMap));
+
+            double[][] reverseMap = mMult(destMap, mInvert3x3(sourceMap));
+            int[] middle = pixelMap(reverseMap, pointArray[9], pointArray[8]);
+
+            int[] roughPixels = new int[ROUGH_SIDE*ROUGH_SIDE];
+            int i0 = middle[1]-(ROUGH_SIDE/2), i1 = middle[1]+(ROUGH_SIDE/2),
+                    j0 = middle[0]-(ROUGH_SIDE/2), j1 = middle[0]+(ROUGH_SIDE/2);
+            int[] temp;
+            for(int i=i0;i<i1;i++) {
+                for (int j=j0;j<j1;j++) {
+                    temp = pixelMap(finalMap,i,j);
+                    roughPixels[(i-i0)*ROUGH_SIDE + (j-j0)] = rotatedbmp.getPixel(temp[0],temp[1]);
+                }
+            }
+
+            roughPixels = toGreyscale(roughPixels, ROUGH_SIDE);
+            double[] roughValues = lms.runFit(roughPixels, ROUGH_SIDE,
+                    new double[]{10, ESTIMATION_SIZE / 2, ESTIMATION_SIZE / 2, 5, 5, 1}, 1e-6, 1000, 20);
+
+            Log.e("rough values", String.valueOf(roughValues[1])+" "+String.valueOf(roughValues[2])+" "
+                    +String.valueOf(roughValues[3])+" "+String.valueOf(roughValues[4]));
+
+            int[] fittedMiddle = pixelMap(finalMap, i0 + roughValues[2], j0 + roughValues[1]);
+            double rx = (roughValues[3] > roughValues[4]) ?
+                    ESTIMATION_SIZE/(roughValues[3]) : ESTIMATION_SIZE/(roughValues[4]);
+            scale = Math.abs(rx * FINAL_SIZE / shorter);
+            int finalWidth = (int) Math.round(MainActivity.width*scale);
+            int finalLength = (int) Math.round(MainActivity.length*scale);
+
+            Log.e("asdf",String.valueOf(finalWidth)+" "+String.valueOf(finalLength));
+
+            destArray = new double[] {0,0,finalWidth,0,finalWidth,finalLength,0,finalLength};
+            destMap = tMap(destArray);
+
+            finalMap = mMult(sourceMap, mInvert3x3(destMap));
+            reverseMap = mMult(destMap, mInvert3x3(sourceMap));
+            middle = pixelMap(reverseMap, fittedMiddle[1], fittedMiddle[0]);
+
+            int[] finalPixels = new int[FINAL_SIZE*FINAL_SIZE];
+            i0 = middle[1]-FINAL_SIZE/2; i1 = middle[1]+FINAL_SIZE/2;
+            j0 = middle[0]-FINAL_SIZE/2; j1 = middle[0]+FINAL_SIZE/2;
+
+            Log.e("squares",String.valueOf(i0)+" "+String.valueOf(i1)+" "+String.valueOf(j0)+" "+String.valueOf(j1));
+
+            for(int i=i0;i<i1;i++) {
+                for (int j=j0;j<j1;j++) {
+                    temp = pixelMap(finalMap,i,j);
+                    finalPixels[(i-i0)*FINAL_SIZE + (j-j0)] = rotatedbmp.getPixel(temp[0],temp[1]);
+                }
+            }
+
+/*            finalPixels = toGreyscale(finalPixels, FINAL_SIZE);
+
+            double[] finalValues = lms.runFit(finalPixels, FINAL_SIZE,
+                new double[]{10,FINAL_SIZE/2,FINAL_SIZE/2,10,10,1},1e-6,1000,20);
+
+            Log.e("final values", String.valueOf(finalValues[1])+" "+String.valueOf(finalValues[2])+" "
+                    +String.valueOf(finalValues[3])+" "+String.valueOf(finalValues[4]));*/
+
+            //display(finalPixels,FINAL_SIZE);
+            display2(finalPixels);
+        }
+    }
+
+    private int[] toGreyscale(int[] pixels, int width){
+        int [] grey = new int[pixels.length];
+        for(int i=0; i<pixels.length/width; i++){
+            for(int j=0; j<width; j++){
+                grey[i*width + j] = (Color.green(pixels[(i*width)+j])+Color.red(pixels[(i*width)+j])+Color.blue(pixels[(i*width)+j]))/3;
+            }
+        }
+/*        int i0 = middle[1]-(width/2), i1 = middle[1]+(width/2), j0 = middle[0]-(width/2), j1 = middle[0]+(width/2);
+        for(int i=i0;i<i1;i++){
+            for(int j=j0;j<j1;j++){
+                grey[(i-i0)*width + (j-j0)] = (Color.green(pixels[(i*width)+j])+Color.red(pixels[(i*width)+j])+Color.blue(pixels[(i*width)+j]))/3;
+            }
+        }*/
+        return grey;
+    }
+
     //scale fitted value to <scale> max
     private int[] scaleTo(double scale, int[] pixels){
         double max = 0;
@@ -184,61 +254,50 @@ public class projTransform extends Activity{
         int ix = (int) Math.round(x);
         int iy = (int) Math.round(y);
 
-        for (int i=0; i<fitCrop; i++){
+        for (int i=0; i<FINAL_SIZE; i++){
             //fitted values graph
-            greyScale[(fitted[ix*fitCrop + i]*(fitCrop/3)/255)*fitCrop + i] = -2;
-            greyScale[i*fitCrop + (fitted[i*fitCrop + iy]*(fitCrop/3)/255)] = -2;
+            greyScale[(fitted[ix*FINAL_SIZE + i]*(FINAL_SIZE/3)/255)*FINAL_SIZE + i] = -2;
+            greyScale[i*FINAL_SIZE + (fitted[i*FINAL_SIZE + iy]*(FINAL_SIZE/3)/255)] = -2;
 
             //original value graph
-            greyScale[(greyScale[ix*fitCrop + i]*(fitCrop/3)/255)*fitCrop + i] = -1;
-            greyScale[i*fitCrop + (greyScale[i*fitCrop + iy]*(fitCrop/3)/255)] = -1;
+            greyScale[(greyScale[ix*FINAL_SIZE + i]*(FINAL_SIZE/3)/255)*FINAL_SIZE + i] = -1;
+            greyScale[i*FINAL_SIZE + (greyScale[i*FINAL_SIZE + iy]*(FINAL_SIZE/3)/255)] = -1;
         }
 
         return greyScale;
     }
 
-    private void display(int[] pixels) {
-        Bitmap cropped = Bitmap.createBitmap(pixels, destWidth, destHeight, Bitmap.Config.RGB_565);
+    private void display(int[] pixels, int width) {
+        Bitmap cropped = Bitmap.createBitmap(pixels, width, pixels.length/width, Bitmap.Config.RGB_565);
         //set imageView
         imageView = (ImageView) findViewById(R.id.imageView2);
         imageView.setImageBitmap(cropped);
     }
 
-    private void display2(int[] pixels, int[] middle) {
-        int[] grey = new int[fitCrop*fitCrop];
-        int i0 = middle[1]-(fitCrop/2), i1 = middle[1]+(fitCrop/2), j0 = middle[0]-(fitCrop/2), j1 = middle[0]+(fitCrop/2);
-        //Log.i("middle",String.valueOf(middle[0])+" "+String.valueOf(middle[1]));
-        for(int i=i0;i<i1;i++){
-            for(int j=j0;j<j1;j++){
-                pixelArray[i-i0][j-j0] = (Color.green(pixels[(i*destWidth)+j])+Color.red(pixels[(i*destWidth)+j])+Color.blue(pixels[(i*destWidth)+j]))/3;
-                grey[(i-i0)*fitCrop + (j-j0)] = (Color.green(pixels[(i*destWidth)+j])+Color.red(pixels[(i*destWidth)+j])+Color.blue(pixels[(i*destWidth)+j]))/3;
-            }
-        }
+    private void display2(int[] pixels) {
 
-        lmsFit lms = new lmsFit();
-        int[] lmsFitted = lms.minSolve(new double[]{10,60,60,25,25,1},1e-6,1000,20);
-        //int[] fittedPixels = new int[grey.length];
+        pixels = toGreyscale(pixels, FINAL_SIZE);
+        double[] finalValues = lms.runFit(pixels, FINAL_SIZE,
+                new double[]{10, FINAL_SIZE / 2, FINAL_SIZE / 2, 10, 10, 1}, 1e-6, 1000,20);
 
-        int[] withGraph = graph(lms.finalBeta[1], lms.finalBeta[2], scaleTo(255, lmsFitted), scaleTo(255, grey));
-        double temp;
+        Log.e("final values", String.valueOf(finalValues[1])+" "+String.valueOf(finalValues[2])+" "
+                +String.valueOf(finalValues[3])+" "+String.valueOf(finalValues[4]));
+
+        int[] withGraph = graph(finalValues[1], finalValues[2], scaleTo(255, lms.toPixelArray(lms.beta1)), scaleTo(255, pixels));
         int[] color;
         for(int i=0;i<withGraph.length;i++){
             color = toColor(withGraph[i]);
             withGraph[i] = Color.rgb(color[0], color[1], color[2]);
         }
 
-/*        for(int i=0;i<lmsFitted.length;i++) {
-            fittedPixels[i] = Color.rgb(lmsFitted[i], lmsFitted[i], lmsFitted[i]);
-        }*/
-
-        Bitmap cropped = Bitmap.createBitmap(withGraph, fitCrop, fitCrop, Bitmap.Config.RGB_565);
+        Bitmap cropped = Bitmap.createBitmap(withGraph, FINAL_SIZE, FINAL_SIZE, Bitmap.Config.RGB_565);
         //set imageView
-        imageView = (ImageView) findViewById(R.id.imageView3);
+        imageView = (ImageView) findViewById(R.id.imageView2);
         imageView.setImageBitmap(cropped);
 
         //values[0] = wx; values[1] = wy; values[2] = ellipticity;
-        double wx = (lms.finalBeta[3])/scale;
-        double wy = (lms.finalBeta[4])/scale;
+        double wx = (finalValues[3])/scale;
+        double wy = (finalValues[4])/scale;
         MathContext mc = new MathContext(4);
 
         BigDecimal bdx = new BigDecimal(wx);
@@ -318,14 +377,17 @@ public class projTransform extends Activity{
         return string;
     }
 
+    private lmsFit lms = new lmsFit();
     public static int fitCrop = 120;
+    private int ESTIMATION_SIZE = 35;
+    private int FINAL_SIZE = 100;
     private double[] pointArray;
-    public static int[][] pixelArray = new int[fitCrop][fitCrop];
     private int rotate;
     private Bitmap tempBmp;
     private ImageView imageView;
-    public static double scale = Math.sqrt(70000/(MainActivity.length*MainActivity.width));
-    //destHeight destWidth pixel sizes of destination matrix
-    public static int destHeight = (int) Math.round(MainActivity.length*scale);
-    public static int destWidth = (int) Math.round(MainActivity.width*scale);
+    private double scale = 1;
+    //private static double roughScale = Math.sqrt(2500/(MainActivity.length*MainActivity.width));
+    //destLength destWidth pixel sizes of destination matrix
+    //private static int destLength = (int) Math.round(MainActivity.length*scale);
+    //private static int destWidth = (int) Math.round(MainActivity.width*scale);
 }

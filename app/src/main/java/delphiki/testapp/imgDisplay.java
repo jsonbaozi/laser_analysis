@@ -1,7 +1,9 @@
 package delphiki.testapp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 
 import android.database.Cursor;
@@ -15,7 +17,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -24,6 +28,8 @@ import java.io.InputStream;
 
 
 public class imgDisplay extends Activity{
+
+    final Context context = this;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +83,46 @@ public class imgDisplay extends Activity{
             //set imageView to canvas drawable
             imageView = (DrawView) findViewById(R.id.DrawView);
             imageView.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
+
+            LayoutInflater li = LayoutInflater.from(context);
+            View promptView = li.inflate(R.layout.dimens_prompt, null);
+
+            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                    context);
+
+            // set prompts.xml to alertdialog builder
+            alertDialogBuilder.setView(promptView);
+
+            final EditText lInput = (EditText) promptView
+                    .findViewById(R.id.LengthInput);
+            final EditText wInput = (EditText) promptView
+                    .findViewById(R.id.WidthInput);
+
+            // set dialog message
+            alertDialogBuilder
+                    .setPositiveButton("Set Dimensions (mm)",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog,int id) {
+                                    String lString = lInput.getText().toString();
+                                    String wString = wInput.getText().toString();
+                                    if (!lString.isEmpty() && !wString.isEmpty()) {
+                                        MainActivity.length = Double.parseDouble(lString);
+                                        MainActivity.width = Double.parseDouble(wString);
+                                    }
+                                }
+                            })
+                    .setNegativeButton("Cancel",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog,int id) {
+                                    dialog.cancel();
+                                }
+                            });
+
+            // create alert dialog
+            AlertDialog alertDialog = alertDialogBuilder.create();
+
+            // show it
+            alertDialog.show();
         }
     }
 
