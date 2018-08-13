@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
 
-    tools:context="delphiki.testapp.imgDisplay">
+    tools:context="delphiki.laser.imgDisplay">
 
     <ImageView
         android:layout_width="fill_parent"

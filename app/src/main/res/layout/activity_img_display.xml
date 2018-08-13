@@ -2,19 +2,29 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="delphiki.testapp.imgDisplay">
+    tools:context="delphiki.laser.imgDisplay">
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="50dp"
+        android:text="Change Dimensions"
+        android:onClick="promptDimens" />
 
 
-    <delphiki.testapp.DrawView
+    <delphiki.laser.DrawView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:id="@+id/DrawView"
-        android:src="@mipmap/ic_launcher" />
+        android:src="@mipmap/ic_launcher"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="75dp"
-        android:text="Set points"
+        android:text="Perform Gaussian Fitting"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"

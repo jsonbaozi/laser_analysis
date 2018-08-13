@@ -1,4 +1,4 @@
-package delphiki.testapp;
+package delphiki.laser;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -39,6 +39,7 @@ public class imgDisplay extends Activity{
         Intent parent_intent = getIntent();
         imgUri = parent_intent.getData();
         display(imgUri);
+
     }
 
     @Override
@@ -84,46 +85,100 @@ public class imgDisplay extends Activity{
             imageView = (DrawView) findViewById(R.id.DrawView);
             imageView.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
 
-            LayoutInflater li = LayoutInflater.from(context);
-            View promptView = li.inflate(R.layout.dimens_prompt, null);
-
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
-                    context);
-
-            // set prompts.xml to alertdialog builder
-            alertDialogBuilder.setView(promptView);
-
-            final EditText lInput = (EditText) promptView
-                    .findViewById(R.id.LengthInput);
-            final EditText wInput = (EditText) promptView
-                    .findViewById(R.id.WidthInput);
-
-            // set dialog message
-            alertDialogBuilder
-                    .setPositiveButton("Set Dimensions (mm)",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog,int id) {
-                                    String lString = lInput.getText().toString();
-                                    String wString = wInput.getText().toString();
-                                    if (!lString.isEmpty() && !wString.isEmpty()) {
-                                        MainActivity.length = Double.parseDouble(lString);
-                                        MainActivity.width = Double.parseDouble(wString);
-                                    }
-                                }
-                            })
-                    .setNegativeButton("Cancel",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog,int id) {
-                                    dialog.cancel();
-                                }
-                            });
-
-            // create alert dialog
-            AlertDialog alertDialog = alertDialogBuilder.create();
-
-            // show it
-            alertDialog.show();
+            promptDimens();
         }
+    }
+
+    private void promptDimens(){
+        LayoutInflater li = LayoutInflater.from(context);
+        View promptView = li.inflate(R.layout.dimens_prompt, null);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                context);
+
+        // set prompts.xml to alertdialog builder
+        alertDialogBuilder.setView(promptView);
+
+        final EditText lInput = (EditText) promptView
+                .findViewById(R.id.LengthInput);
+        final EditText wInput = (EditText) promptView
+                .findViewById(R.id.WidthInput);
+
+        lInput.setHint(Double.toString(MainActivity.length));
+        wInput.setHint(Double.toString(MainActivity.width));
+
+        // set dialog message
+        alertDialogBuilder
+                .setMessage("Enter dimensions\nDrag the corners of the red box onto the rectangle with the dimensions below\nDrag the center dot into the middle of your laser beam")
+                .setPositiveButton("Set Dimensions (mm)",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,int id) {
+                                String lString = lInput.getText().toString();
+                                String wString = wInput.getText().toString();
+                                if (!lString.isEmpty() && !wString.isEmpty()) {
+                                    MainActivity.length = Double.parseDouble(lString);
+                                    MainActivity.width = Double.parseDouble(wString);
+                                }
+                            }
+                        })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+        // create alert dialog
+        AlertDialog alertDialog = alertDialogBuilder.create();
+
+        // show it
+        alertDialog.show();
+    }
+
+    public void promptDimens(View v){
+        LayoutInflater li = LayoutInflater.from(context);
+        View promptView = li.inflate(R.layout.dimens_prompt, null);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                context);
+
+        // set prompts.xml to alertdialog builder
+        alertDialogBuilder.setView(promptView);
+
+        final EditText lInput = (EditText) promptView
+                .findViewById(R.id.LengthInput);
+        final EditText wInput = (EditText) promptView
+                .findViewById(R.id.WidthInput);
+
+        lInput.setHint(Double.toString(MainActivity.length));
+        wInput.setHint(Double.toString(MainActivity.width));
+
+        // set dialog message
+        alertDialogBuilder
+                .setMessage("Enter dimensions\nDrag the corners of the red box onto the rectangle with the dimensions below\nDrag the center dot into the middle of your laser beam")
+                .setPositiveButton("Set Dimensions (mm)",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,int id) {
+                                String lString = lInput.getText().toString();
+                                String wString = wInput.getText().toString();
+                                if (!lString.isEmpty() && !wString.isEmpty()) {
+                                    MainActivity.length = Double.parseDouble(lString);
+                                    MainActivity.width = Double.parseDouble(wString);
+                                }
+                            }
+                        })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+        // create alert dialog
+        AlertDialog alertDialog = alertDialogBuilder.create();
+
+        // show it
+        alertDialog.show();
     }
 
     final float[] getPointerCoords(ImageView view, float x, float y){
@@ -136,6 +191,11 @@ public class imgDisplay extends Activity{
     }
 
     public void transform(View view){
+
+        if (MainActivity.length <= 0 || MainActivity.width <= 0){
+            promptDimens();
+            return;
+        }
 
         double[] pointArray = new double[10];
 
@@ -164,7 +224,6 @@ public class imgDisplay extends Activity{
         intent.putExtra("points", pointArray);
         intent.putExtra("rotate", rotate);
         startActivity(intent);
-
     }
 
     public int getCameraPhotoOrientation(Context context, Uri imageUri){
@@ -203,7 +262,6 @@ public class imgDisplay extends Activity{
         }
         return temp;
     }
-
 
     private Uri imgUri;
     private Canvas imgCanvas;

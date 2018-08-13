@@ -1,4 +1,4 @@
-package delphiki.testapp;
+package delphiki.laser;
 
 import android.util.Log;
 
@@ -115,8 +115,8 @@ public class lmsFit {
 
     private double gaussian ( double i, double j, double[] beta){
         double e = Math.E;
-        return beta[0] * Math.exp(-2 * (Math.pow(j-beta[1],2)/Math.pow(beta[3],2) +
-                Math.pow(i-beta[2],2)/Math.pow(beta[4],2))) + beta[5];
+        return Math.min(beta[0] * Math.exp(-2 * (Math.pow(j-beta[1],2)/Math.pow(beta[3],2) +
+                Math.pow(i-beta[2],2)/Math.pow(beta[4],2))) + beta[5], 255);
     }
 
     private double dot(double[] a, double[] b){

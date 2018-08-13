@@ -1,25 +1,17 @@
-package delphiki.testapp;
+package delphiki.laser;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 
 
 public class MainActivity extends Activity {
-
-    final Context context = this;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +89,6 @@ public class MainActivity extends Activity {
     public final static int PICK_IMAGE = 100;
     public final static int TAKE_IMAGE = 101;
     private Button dimensButton;
-    public static double length = 1;
-    public static double width = 1;
+    public static double length = 0;
+    public static double width = 0;
 }

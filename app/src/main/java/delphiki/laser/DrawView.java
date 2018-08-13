@@ -1,4 +1,4 @@
-package delphiki.testapp;
+package delphiki.laser;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -14,6 +14,7 @@ public class DrawView extends ImageView {
 
     Paint pPaint = new Paint();
     Paint lPaint = new Paint();
+    Paint tPaint = new Paint();
 
 
     PointF topLeft = new PointF(200,200);
@@ -52,12 +53,19 @@ public class DrawView extends ImageView {
         lPaint.setStyle(Paint.Style.STROKE);
         lPaint.setStrokeWidth(2);
 
+        tPaint.setColor(Color.GREEN);
+        tPaint.setStyle(Paint.Style.STROKE);
+        tPaint.setStrokeWidth(2);
+
         super.onDraw(canvas);
 
         canvas.drawLine(topLeft.x, topLeft.y, topRight.x, topRight.y, lPaint);
         canvas.drawLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y, lPaint);
         canvas.drawLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y, lPaint);
         canvas.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y, lPaint);
+
+        canvas.drawText("L", (topLeft.x + bottomLeft.x)/2, (bottomLeft.y + topLeft.y)/2, tPaint);
+        canvas.drawText("W", (topRight.x + topLeft.x)/2, (topLeft.y + topRight.y)/2, tPaint);
 
 /*        canvas.drawPoint(topLeft.x, topLeft.y, pPaint);
         canvas.drawPoint(topRight.x, topRight.y, pPaint);

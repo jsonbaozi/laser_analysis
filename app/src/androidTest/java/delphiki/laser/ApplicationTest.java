@@ -1,4 +1,4 @@
-package delphiki.testapp;
+package delphiki.laser;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

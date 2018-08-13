@@ -1,4 +1,4 @@
-package delphiki.testapp;
+package delphiki.laser;
 
 import android.app.Activity;
 import android.content.ClipData;
@@ -174,17 +174,22 @@ public class projTransform extends Activity{
             double[] roughValues = lms.runFit(roughPixels, ROUGH_SIDE,
                     new double[]{10, ESTIMATION_SIZE / 2, ESTIMATION_SIZE / 2, 5, 5, 1}, 1e-6, 1000, 20);
 
-            Log.e("rough values", String.valueOf(roughValues[1])+" "+String.valueOf(roughValues[2])+" "
-                    +String.valueOf(roughValues[3])+" "+String.valueOf(roughValues[4]));
+            Log.e("rough values", toString(roughValues));
 
             int[] fittedMiddle = pixelMap(finalMap, i0 + roughValues[2], j0 + roughValues[1]);
             double rx = (roughValues[3] > roughValues[4]) ?
                     ESTIMATION_SIZE/(roughValues[3]) : ESTIMATION_SIZE/(roughValues[4]);
+
+            rx = (rx > 1/.9) ? rx : 1/.9;
+
             scale = Math.abs(rx * FINAL_SIZE / shorter);
             int finalWidth = (int) Math.round(MainActivity.width*scale);
             int finalLength = (int) Math.round(MainActivity.length*scale);
 
-            Log.e("asdf",String.valueOf(finalWidth)+" "+String.valueOf(finalLength));
+            wx = (FINAL_SIZE*roughValues[3])/ESTIMATION_SIZE;
+            wy = (FINAL_SIZE*roughValues[4])/ESTIMATION_SIZE;
+
+            //Log.e("final dimens",String.valueOf(finalWidth)+" "+String.valueOf(finalLength));
 
             destArray = new double[] {0,0,finalWidth,0,finalWidth,finalLength,0,finalLength};
             destMap = tMap(destArray);
@@ -197,7 +202,7 @@ public class projTransform extends Activity{
             i0 = middle[1]-FINAL_SIZE/2; i1 = middle[1]+FINAL_SIZE/2;
             j0 = middle[0]-FINAL_SIZE/2; j1 = middle[0]+FINAL_SIZE/2;
 
-            Log.e("squares",String.valueOf(i0)+" "+String.valueOf(i1)+" "+String.valueOf(j0)+" "+String.valueOf(j1));
+            //Log.e("squares",String.valueOf(i0)+" "+String.valueOf(i1)+" "+String.valueOf(j0)+" "+String.valueOf(j1));
 
             for(int i=i0;i<i1;i++) {
                 for (int j=j0;j<j1;j++) {
@@ -205,16 +210,6 @@ public class projTransform extends Activity{
                     finalPixels[(i-i0)*FINAL_SIZE + (j-j0)] = rotatedbmp.getPixel(temp[0],temp[1]);
                 }
             }
-
-/*            finalPixels = toGreyscale(finalPixels, FINAL_SIZE);
-
-            double[] finalValues = lms.runFit(finalPixels, FINAL_SIZE,
-                new double[]{10,FINAL_SIZE/2,FINAL_SIZE/2,10,10,1},1e-6,1000,20);
-
-            Log.e("final values", String.valueOf(finalValues[1])+" "+String.valueOf(finalValues[2])+" "
-                    +String.valueOf(finalValues[3])+" "+String.valueOf(finalValues[4]));*/
-
-            //display(finalPixels,FINAL_SIZE);
             display2(finalPixels);
         }
     }
@@ -226,12 +221,6 @@ public class projTransform extends Activity{
                 grey[i*width + j] = (Color.green(pixels[(i*width)+j])+Color.red(pixels[(i*width)+j])+Color.blue(pixels[(i*width)+j]))/3;
             }
         }
-/*        int i0 = middle[1]-(width/2), i1 = middle[1]+(width/2), j0 = middle[0]-(width/2), j1 = middle[0]+(width/2);
-        for(int i=i0;i<i1;i++){
-            for(int j=j0;j<j1;j++){
-                grey[(i-i0)*width + (j-j0)] = (Color.green(pixels[(i*width)+j])+Color.red(pixels[(i*width)+j])+Color.blue(pixels[(i*width)+j]))/3;
-            }
-        }*/
         return grey;
     }
 
@@ -278,10 +267,12 @@ public class projTransform extends Activity{
 
         pixels = toGreyscale(pixels, FINAL_SIZE);
         double[] finalValues = lms.runFit(pixels, FINAL_SIZE,
-                new double[]{10, FINAL_SIZE / 2, FINAL_SIZE / 2, 10, 10, 1}, 1e-6, 1000,20);
+                new double[]{10, FINAL_SIZE / 2, FINAL_SIZE / 2, wx, wy, 1}, 1e-6, 1000,20);
 
-        Log.e("final values", String.valueOf(finalValues[1])+" "+String.valueOf(finalValues[2])+" "
-                +String.valueOf(finalValues[3])+" "+String.valueOf(finalValues[4]));
+        finalValues[1] = Math.abs(finalValues[1]);
+        finalValues[2] = Math.abs(finalValues[2]);
+
+        Log.e("final values", toString(finalValues));
 
         int[] withGraph = graph(finalValues[1], finalValues[2], scaleTo(255, lms.toPixelArray(lms.beta1)), scaleTo(255, pixels));
         int[] color;
@@ -296,8 +287,8 @@ public class projTransform extends Activity{
         imageView.setImageBitmap(cropped);
 
         //values[0] = wx; values[1] = wy; values[2] = ellipticity;
-        double wx = (finalValues[3])/scale;
-        double wy = (finalValues[4])/scale;
+        wx = Math.abs((finalValues[3])/scale);
+        wy = Math.abs((finalValues[4])/scale);
         MathContext mc = new MathContext(4);
 
         BigDecimal bdx = new BigDecimal(wx);
@@ -382,6 +373,7 @@ public class projTransform extends Activity{
     private int ESTIMATION_SIZE = 35;
     private int FINAL_SIZE = 100;
     private double[] pointArray;
+    private double wx, wy;
     private int rotate;
     private Bitmap tempBmp;
     private ImageView imageView;
